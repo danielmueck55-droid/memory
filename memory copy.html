@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Weihnachts-Memory – Türchen 2</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0;
+      padding-top: 20px;
+      padding-bottom: 40px; /* Extra space at bottom for scrolling */
+      background: linear-gradient(#f8f8f8, #d8e3f0);
+      /* Festive background pattern */
+      background-image:
+      url('data:image/svg+xml,%3Csvg width="100" height="100" xmlns="http://www.w3.org/2000/svg"%3E%3Ctext x="10" y="55" font-size="20" fill="%23e0e0e0"%3E✻%3C/text%3E%3C/svg%3E'),
+      url('data:image/svg+xml,%3Csvg width="120" height="120" xmlns="http://www.w3.org/2000/svg"%3E%3Ctext x="15" y="65" font-size="22" fill="%23f2d4d4"%3E✦%3C/text%3E%3C/svg%3E');
+      background-repeat: repeat;
+      overflow-x: hidden;
+      min-height: 100vh;
+    }
+
+    h1 {
+      font-family: 'Great Vibes', cursive;
+      font-size: 3rem;
+      color: #b30000;
+      margin: 0;
+      text-shadow: 0 0 4px rgba(255,255,255,0.7);
+      text-align: center;
+      padding: 0 10px;
+    }
+
+    h2 {
+      font-family: 'Great Vibes', cursive;
+      font-size: 2rem;
+      color: #b30000;
+      margin: 0;
+      text-shadow: 0 0 4px rgba(255,255,255,0.7);
+    }
+
+    /* Snowflakes */
+    .snowflake {
+      position: fixed;
+      top: -10px;
+      color: white;
+      font-size: 20px;
+      opacity: 0.75;
+      animation: fall linear infinite;
+      pointer-events: none;
+      z-index: 1000;
+    }
+    @keyframes fall { to { transform: translateY(110vh); } }
+
+    /* Top info bar */
+    #infoBar {
+      margin-top: 15px;
+      font-size: 17px;
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .miniLabel {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: white;
+      padding: 6px 12px;
+      border-radius: 8px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.15);
+      font-size: 16px;
+    }
+    .miniLabel svg {
+      width: 18px;
+      height: 18px;
+      stroke: #b30000;
+      stroke-width: 2;
+    }
+
+    /* Puzzle frame */
+    #frame {
+      padding: 15px;
+      border: 8px solid #b30000;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.65);
+      box-shadow: 0 0 15px rgba(0,0,0,0.2);
+      margin-top: 20px;
+      transition: all 0.8s ease;
+      position: relative;
+    }
+
+    /* MEMORY GRID STYLES */
+    #gameGrid {
+      display: grid;
+      grid-template-columns: repeat(4, 75px);
+      grid-template-rows: repeat(4, 75px);
+      gap: 8px;
+      perspective: 1000px;
+    }
+
+    .card {
+      width: 75px;
+      height: 75px;
+      position: relative;
+      cursor: pointer;
+      transform-style: preserve-3d;
+      transition: transform 0.6s;
+      border-radius: 8px;
+    }
+
+    .card.flipped {
+      transform: rotateY(180deg);
+      cursor: default;
+    }
+
+    .card.matched {
+      transform: rotateY(180deg);
+      animation: pulseMatch 0.5s ease-out;
+      cursor: default;
+    }
+
+    @keyframes pulseMatch {
+      0% { box-shadow: 0 0 0 rgba(0,128,0,0); }
+      50% { box-shadow: 0 0 15px rgba(0,128,0,0.8); }
+      100% { box-shadow: 0 0 0 rgba(0,128,0,0); }
+    }
+
+    .card-face {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px; /* for emojis */
+      box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+      overflow: hidden;
+    }
+
+    /* FRONT: Red festive pattern */
+    .card-front {
+      background: #b30000;
+      background-image: radial-gradient(#d00000 15%, transparent 16%),
+      radial-gradient(#d00000 15%, transparent 16%);
+      background-size: 10px 10px;
+      background-position: 0 0, 5px 5px;
+      color: rgba(255,255,255,0.2);
+    }
+    .card-front::after {
+      content: "★";
+      font-size: 24px;
+    }
+
+    /* BACK: White background + Image/Emoji */
+    .card-back {
+      background: white;
+      transform: rotateY(180deg);
+      border: 2px solid #d4af37;
+    }
+    
+    /* Ensure images fill the card */
+    .card-back img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* Win Message Area - Appears BELOW grid */
+    #winMessage {
+      margin-top: 25px;
+      background: rgba(255,255,255,0.94);
+      padding: 14px 20px;
+      border-radius: 12px;
+      font-size: 17px;
+      box-shadow: 0 0 12px rgba(0,0,0,0.25);
+      opacity: 0;
+      transform: translateY(18px);
+      transition: all 0.8s ease;
+      display: none;
+      text-align: center;
+      max-width: 92vw;
+      width: 300px;
+    }
+
+    #winTitle {
+      font-family: 'Great Vibes', cursive;
+      font-size: 2.3rem;
+      margin: 0;
+      background: linear-gradient(45deg, #b30000, #d4af37, #008000);
+      -webkit-background-clip: text;
+      color: transparent;
+      text-shadow: 0 0 7px rgba(255,255,255,0.7);
+      animation: winPop 0.9s ease-out forwards;
+    }
+    
+    @keyframes winPop {
+      0% { transform: scale(0.5) rotate(-6deg); opacity: 0; }
+      60% { transform: scale(1.12) rotate(2deg); opacity: 1; }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+
+    .actionButton {
+      padding: 10px 24px;
+      border-radius: 999px;
+      background: #b30000;
+      color: white;
+      border: none;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 12px;
+      transition: background 0.2s ease, transform 0.2s;
+    }
+    .actionButton:hover { 
+        background: #d00000; 
+        transform: scale(1.05);
+    }
+
+    @keyframes confettiFadeOut {
+      from { opacity: 1; }
+      to   { opacity: 0; }
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <canvas id="confettiCanvas"
+          style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+                 pointer-events: none; z-index: 999999; display: none;"></canvas>
+
+  <h1>Felice Adventskalender</h1>
+  <h2 id="roundTitle">Türchen 2 🎅✨</h2>
+
+  <div id="infoBar">
+    <div class="miniLabel">
+      <svg viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="9"></circle>
+        <line x1="12" y1="12" x2="12" y2="7"></line>
+        <line x1="12" y1="12" x2="15" y2="12"></line>
+      </svg>
+      <span id="timer">0</span>s
+    </div>
+
+    <div class="miniLabel">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+        <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+        <line x1="12" y1="22.08" x2="12" y2="12"></line>
+      </svg>
+      <span id="moveCount">0</span>
+    </div>
+  </div>
+
+  <div id="frame">
+    <div id="gameGrid"></div>
+  </div>
+
+  <div id="winMessage">
+    <h2 id="winTitle"></h2>
+    <p id="winText"></p>
+    <button id="actionBtn" class="actionButton"></button>
+  </div>
+
+<script>
+/* ==========================
+   Snowflakes
+========================== */
+for (let i = 0; i < 20; i++) {
+  const f = document.createElement('div');
+  f.className = 'snowflake';
+  f.textContent = '❅';
+  f.style.left = Math.random() * 100 + 'vw';
+  f.style.animationDuration = 5 + Math.random() * 5 + 's';
+  f.style.animationDelay = Math.random() * 5 + 's';
+  document.body.appendChild(f);
+}
+
+/* ==========================
+   Game Data
+========================== */
+
+// Round 1: Festive Emojis
+const emojiItems = ['🎅', '🎄', '🎁', '☃️', '🍪', '🕯️', '🦌', '🔔'];
+
+// Round 2: Felice Photos
+const photoItems = [
+  '<img src="IMG_7606 2.jpg">',
+  '<img src="IMG_7266 2.jpg">',
+  '<img src="9438a8ef-6ac3-4362-a65b-854272aada5b.jpg">',
+  '<img src="IMG_9548.jpg">',
+  '<img src="IMG_2480.jpg">',
+  '<img src="IMG_9147.jpg">',
+  '<img src="IMG_1907.jpg">',
+  '<img src="5ae1467e-3793-40ec-a9c9-a93f4ea8d893 2.jpg">'
+];
+
+
+/* ==========================
+   Global Variables
+========================== */
+const gridEl = document.getElementById("gameGrid");
+const timerEl = document.getElementById("timer");
+const moveEl = document.getElementById("moveCount");
+const winMessageEl = document.getElementById("winMessage");
+const winTitleEl = document.getElementById("winTitle");
+const winTextEl = document.getElementById("winText");
+const actionBtn = document.getElementById("actionBtn");
+const roundTitleEl = document.getElementById("roundTitle");
+
+let currentRound = 1; // Start at round 1
+let cards = [];
+let flippedCards = [];
+let matchedPairs = 0;
+let moveCount = 0;
+let startTime = null;
+let timerInt = null;
+let lockBoard = false;
+let currentDeckSize = 0; // To track win condition
+
+/* ==========================
+   CONFETTI ENGINE
+========================== */
+const confettiCanvas = document.getElementById("confettiCanvas");
+const ctx = confettiCanvas.getContext("2d");
+let confettiPieces = [];
+let confettiActive = false;
+
+function startConfetti() {
+  confettiActive = true;
+  confettiCanvas.style.display = "block";
+  resizeCanvas();
+  createConfetti();
+  requestAnimationFrame(updateConfetti);
+  setTimeout(() => fadeOutConfetti(), 2500); // Run a bit longer
+}
+
+function fadeOutConfetti() {
+  confettiCanvas.style.animation = "confettiFadeOut 2.5s forwards";
+  setTimeout(() => {
+    stopConfetti();
+    confettiCanvas.style.animation = "";
+  }, 2100);
+}
+
+function stopConfetti() {
+  confettiActive = false;
+  confettiPieces = [];
+  confettiCanvas.style.display = "none";
+}
+
+function resizeCanvas() {
+  confettiCanvas.width = window.innerWidth;
+  confettiCanvas.height = window.innerHeight;
+}
+window.addEventListener("resize", resizeCanvas);
+
+function createConfetti() {
+  const colors = ["#b30000", "#d4af37", "#ffffff", "#008000"];
+  for (let i = 0; i < 260; i++) {
+    confettiPieces.push({
+      x: Math.random() * confettiCanvas.width,
+      y: Math.random() * confettiCanvas.height - confettiCanvas.height,
+      size: Math.random() * 7 + 4,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      speed: Math.random() * 3 + 1.5,
+      angle: Math.random() * Math.PI * 2,
+      spin: Math.random() * 0.12 - 0.06
+    });
+  }
+}
+
+function updateConfetti() {
+  if (!confettiActive) return;
+  ctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+  confettiPieces.forEach(p => {
+    p.y += p.speed;
+    p.angle += p.spin;
+    ctx.fillStyle = p.color;
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.angle);
+    ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+    ctx.restore();
+  });
+  confettiPieces = confettiPieces.filter(p => p.y < confettiCanvas.height);
+  requestAnimationFrame(updateConfetti);
+}
+
+
+/* ==========================
+   GAME LOGIC
+========================== */
+
+function initGame(round) {
+  currentRound = round;
+  
+  // Reset state
+  moveCount = 0;
+  matchedPairs = 0;
+  flippedCards = [];
+  lockBoard = false;
+  startTime = null;
+  if (timerInt) clearInterval(timerInt);
+  
+  // Update UI Elements
+  timerEl.textContent = "0";
+  moveEl.textContent = "0";
+  winMessageEl.style.display = "none";
+  winMessageEl.style.opacity = "0";
+  
+  // Make sure Grid is visible (in case we restart)
+  gridEl.style.display = "grid";
+  gridEl.style.opacity = "1";
+
+  // Determine Deck
+  let itemsToUse = [];
+  if (currentRound === 1) {
+    itemsToUse = emojiItems;
+    roundTitleEl.textContent = "Türchen 15: Warm Up 🎅";
+  } else {
+    itemsToUse = photoItems;
+    roundTitleEl.textContent = "Türchen 15: Felice Edition ✨";
+  }
+
+  currentDeckSize = itemsToUse.length;
+  
+  // Duplicate and Shuffle
+  const deck = [...itemsToUse, ...itemsToUse];
+  shuffle(deck);
+  createBoard(deck);
+}
+
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+}
+
+function createBoard(deck) {
+  gridEl.innerHTML = "";
+  cards = [];
+
+  deck.forEach(val => {
+    const card = document.createElement("div");
+    card.classList.add("card");
+    card.dataset.value = val;
+
+    card.innerHTML = `
+      <div class="card-face card-front"></div>
+      <div class="card-face card-back">${val}</div>
+    `;
+
+    card.addEventListener("click", flipCard);
+    gridEl.appendChild(card);
+    cards.push(card);
+  });
+}
+
+function flipCard() {
+  if (lockBoard) return;
+  if (this === flippedCards[0]) return;
+
+  if (!startTime) {
+    startTime = Date.now();
+    timerInt = setInterval(() => {
+      timerEl.textContent = Math.floor((Date.now() - startTime) / 1000);
+    }, 1000);
+  }
+
+  this.classList.add("flipped");
+  flippedCards.push(this);
+
+  if (flippedCards.length === 2) {
+    checkForMatch();
+    incrementMoves();
+  }
+}
+
+function incrementMoves() {
+  moveCount++;
+  moveEl.textContent = moveCount;
+}
+
+function checkForMatch() {
+  lockBoard = true;
+  const [c1, c2] = flippedCards;
+  const isMatch = c1.dataset.value === c2.dataset.value;
+
+  if (isMatch) {
+    disableCards();
+  } else {
+    unflipCards();
+  }
+}
+
+function disableCards() {
+  flippedCards[0].classList.add("matched");
+  flippedCards[1].classList.add("matched");
+  matchedPairs++;
+  flippedCards = [];
+  lockBoard = false;
+
+  if (matchedPairs === currentDeckSize) {
+    onRoundComplete();
+  }
+}
+
+function unflipCards() {
+  setTimeout(() => {
+    flippedCards[0].classList.remove("flipped");
+    flippedCards[1].classList.remove("flipped");
+    flippedCards = [];
+    lockBoard = false;
+  }, 1000);
+}
+
+
+/* ==========================
+   WIN / TRANSITION LOGIC
+========================== */
+
+function onRoundComplete() {
+  clearInterval(timerInt);
+  if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+  
+  startConfetti();
+
+  // Show Message after a short delay (so user sees final card flip)
+  setTimeout(() => {
+    showWinMessage();
+    // Scroll smoothly to message so they see the button, 
+    // but keep the photos visible above
+    winMessageEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, 800);
+}
+
+function showWinMessage() {
+  winMessageEl.style.display = "block";
+  setTimeout(() => {
+    winMessageEl.style.opacity = "1";
+    winMessageEl.style.transform = "translateY(0)";
+  }, 50);
+
+  // Customize message based on Round
+  if (currentRound === 1) {
+      winTitleEl.textContent = "Klasse!";
+      winTextEl.innerHTML = "Das war nur das Warm-up...<br>Jetzt das richtige FELICE-Memory! 🎁";
+      actionBtn.textContent = "Let's Go 🚀";
+      actionBtn.onclick = () => initGame(2); // Load Round 2
+  } else {
+      winTitleEl.textContent = "Fantastisch!";
+      winTextEl.innerHTML = "Du hast alle Erinnerungen gefunden! <br> Frohe Weihnachten! 🎄❤️";
+      actionBtn.textContent = "Nochmal spielen 🔄";
+      actionBtn.onclick = () => initGame(1); // Restart from beginning
+  }
+}
+
+// Start with Round 1
+initGame(1);
+
+</script>
+</body>
+</html>
