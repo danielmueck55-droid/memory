@@ -555,12 +555,12 @@ function showWinMessage() {
 
   // Customize message based on Round
   if (currentRound === 1) {
-      winTitleEl.textContent = "Klasse!";
+      winTitleEl.textContent = "Unnormal!";
       winTextEl.innerHTML = "Das war nur das Warm-up...<br>Jetzt das richtige FELICE-Memory! 🎁";
       actionBtn.textContent = "Let's Go 🚀";
       actionBtn.onclick = () => initGame(2); // Load Round 2
   } else {
-      winTitleEl.textContent = "Fantastisch!";
+      winTitleEl.textContent = "Stark!";
       winTextEl.innerHTML = "Du hast alle Erinnerungen gefunden! <br> Frohe Weihnachten! 🎄❤️";
       actionBtn.textContent = "Nochmal spielen 🔄";
       actionBtn.onclick = () => initGame(1); // Restart from beginning
